@@ -1,34 +1,49 @@
 # awattar_scheduler
-Scheduler for best price of energy from aWATTar Hourly (https://www.awattar.com/tariffs/hourly) and creates files based on templates.
+Dieser Python Skript analysiert die stündlichen Strompreise der Strombörse von aWATTar Hourly (https://www.awattar.com/tariffs/hourly) und sucht den günstigsten Zeitpunkt zum Einschalten von elektrischen Verbrauchern.
 
-This script replace the 'Starttime' and 'Endtime' identifier in the given template file and copy the output to the output location.
+Beim Ausführen des Skriptes werden die Start- und Endzeit Marker in der Template Datei entsprechend der Einstellungen gesetzt. Das Ergebnis wird in das Output Verzeichnis kopiert. 
 
-# Install
+Somit kann man zum Beispiel Cron Jobs erstellen, welche elektrische Verbraucher, zum Beispiel Heizungen, Pumpen, Warmwasseraufbereitung, Geschirrspüler usw. zu einem günstigen Strompreis ein und ausschalten.
 
-1. Copy the etc folder to the local folder
-2. Copy awattar_scheduler.py to the /usr/local/bin folder
+Bei Bedarf werden die Strombörsendaten in eine InfluxDB Databank gespeichert.
 
-# Task configuration
+# Mögliche Verwendungszwecke
+-Cron Jobs erstellen
+-InfluxDB Daten mit Grafana auswerten
+-OpenHab Rule Dateien erstellen
+-usw
+
+
+
+# Installation
+
+1. Kopiere den Inhalte von etc auf das lokalen etc Verzeichnis
+2. Kopiere awattar_scheduler.py in das /usr/local/bin Verzeichnis
+3. Die Parameter in der awattar_scheduler.conf anpassen
+
+# Task Einstellungen
+Alle Task Sektion Name müssen mit "Task_" beginnen
+
 **Enable:**
-	Enable or Disabled task [true|false]
+	Aktivieren oder Deaktivieren [true|false]
 
 **Starttime:**
-	Start hour
+	Startzeitpunkt der Analyse
 
 **Periode:**
-	How many hours from start 
+	Wie viele Stunden sollen ab den Startzeitpunkt berücksichtigt werden. 
 
 **Duration:**
-	How many hours of usage. Get the best average price of electricty	
+	Wie viele Stunden wird für die Last benötigt.
 
 **Template:**
-	Path to template file
+	Pfad zur Template Datei
 
 **Output:**
-	Copy the parsed template to output location
+	Das Ergebnis wird in die Datei abgelegt.
 
 **Starttimepattern:**
-	Format time to this string: eg: Time cron "0 %%M %%H * * ?" -> Time cron "0 0 13 * * ?"
+	Formartiert den Startzeitpunkt in das entsprechende Format. z.B. Time cron "0 %%M %%H * * ?" -> Time cron "0 0 13 * * ?"
 
 **Endtimepattern:**
-	Format time to this string: eg: Time cron "0 %%M %%H * * ?" -> Time cron "0 0 13 * * ?"
+	Formartiert den Endzeitpunkt in das entsprechende Format. z.B. Time cron "0 %%M %%H * * ?" -> Time cron "0 0 13 * * ?"
