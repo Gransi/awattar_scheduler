@@ -89,7 +89,7 @@ def getDataFromServer():
 		endtimestamp = str(int(endtime.timestamp()))
 		
 		req = requests.get('https://api.awattar.com/v1/marketdata?start=' + starttimestamp + '000&end=' + endtimestamp + '000',headers = headers)
-		
+
 		if req.status_code != requests.codes.ok: return 0
 		
 		return req.json()
@@ -168,7 +168,7 @@ def searchBestStartingPoint(starttime, periode, duration):
 		valuestarttime = datetime.datetime.utcfromtimestamp(valuestarttime / 1000).replace(tzinfo=timezone.utc)
 		valuestarttime = valuestarttime.astimezone(tz.tzlocal())
 
-		if valuestarttime.hour >= starttime:
+		if valuestarttime.hour >= starttime and valuestarttime >= datetime.datetime.now(tz=timezone.utc):
 			
 			if startatindex == None:
 				startatindex = i
