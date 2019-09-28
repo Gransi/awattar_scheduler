@@ -8,10 +8,10 @@ Somit kann man zum Beispiel Cron Jobs erstellen, welche elektrische Verbraucher,
 Bei Bedarf werden die Strombörsendaten in eine InfluxDB Databank gespeichert.
 
 # Mögliche Verwendungszwecke
--Cron Jobs erstellen
--InfluxDB Daten mit Grafana auswerten
--OpenHab Rule Dateien erstellen
--usw
+- Cron Jobs erstellen
+- InfluxDB Daten mit Grafana auswerten
+- OpenHab Rule Dateien erstellen
+- usw
 
 
 
