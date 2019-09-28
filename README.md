@@ -1,14 +1,14 @@
 # awattar_scheduler
-Scheduler for best price of energy from aWATTar Hourly and create files based on templates
+Scheduler for best price of energy from aWATTar Hourly (https://www.awattar.com/tariffs/hourly) and creates files based on templates.
 
-This script replace the 'Starttime' and 'Endtime' identifier in the given template file and copy the output to the output location
+This script replace the 'Starttime' and 'Endtime' identifier in the given template file and copy the output to the output location.
 
-#Install
+# Install
 
 1. Copy the etc folder to the local folder
 2. Copy awattar_scheduler.py to the /usr/local/bin folder
 
-#Task configuration
+# Task configuration
 Enable:
 	Enable or Disabled task [true|false]
 Starttime:
