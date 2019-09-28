@@ -9,19 +9,26 @@ This script replace the 'Starttime' and 'Endtime' identifier in the given templa
 2. Copy awattar_scheduler.py to the /usr/local/bin folder
 
 # Task configuration
-Enable:
+**Enable:**
 	Enable or Disabled task [true|false]
-Starttime:
+
+**Starttime:**
 	Start hour
-Periode:
+
+**Periode:**
 	How many hours from start 
-Duration:
+
+**Duration:**
 	How many hours of usage. Get the best average price of electricty	
-Template
+
+**Template:**
 	Path to template file
-Output
+
+**Output:**
 	Copy the parsed template to output location
-Starttimepattern:
+
+**Starttimepattern:**
 	Format time to this string: eg: Time cron "0 %%M %%H * * ?" -> Time cron "0 0 13 * * ?"
-Endtimepattern:
+
+**Endtimepattern:**
 	Format time to this string: eg: Time cron "0 %%M %%H * * ?" -> Time cron "0 0 13 * * ?"
