@@ -168,7 +168,7 @@ def searchBestStartingPoint(starttime, periode, duration):
 		valuestarttime = datetime.datetime.utcfromtimestamp(valuestarttime / 1000).replace(tzinfo=timezone.utc)
 		valuestarttime = valuestarttime.astimezone(tz.tzlocal())
 
-		if valuestarttime.hour >= starttime and valuestarttime >= datetime.datetime.now(tz=timezone.utc):
+		if valuestarttime.hour >= starttime:
 			
 			if startatindex == None:
 				startatindex = i
