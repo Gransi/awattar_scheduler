@@ -20,6 +20,8 @@ import datetime
 import dateutil
 import configparser
 import math
+from awattar import AwattarClient
+
 from string import Template
 from datetime import timezone
 from dateutil import tz
@@ -29,6 +31,7 @@ from influxdb import InfluxDBClient
 
 data = None
 config = None
+client = None
 
 def checkNumericInput(name, value):
 	"""
@@ -59,45 +62,6 @@ def checkNumericInput(name, value):
 		print ('Please enter an numeric for value', name)	
 		sys.exit(2)
 
-
-def getDataFromServer():
-	"""
-    Get the market data from API of the next day
-
-    Returns
-    -------
-    int
-        Returns the response from the API
-
-    """
-	global config
-
-	try:
-		
-	    #Header for request
-		headers = {
-			'Authorization': 'Basic ' + config['General']['Authorization']
-		}  
-		
-		#set start timestamp
-		starttime = datetime.datetime.now(tz=timezone.utc)
-		starttime = starttime.replace(hour=0, minute=0, second=0)	
-		starttimestamp = str(int(starttime.timestamp()))
-		
-		#set end timestamp
-		endtime = starttime + datetime.timedelta(days=2)
-		endtimestamp = str(int(endtime.timestamp()))
-		
-		req = requests.get('https://api.awattar.com/v1/marketdata?start=' + starttimestamp + '000&end=' + endtimestamp + '000',headers = headers)
-
-		if req.status_code != requests.codes.ok: return 0
-		
-		return req.json()
-	
-	except Exception as e:
-		print(str(e))
-		return 0
-
 def writeDataToInfluxDB():
 	"""
     Write data from to InfluDB
@@ -115,84 +79,16 @@ def writeDataToInfluxDB():
 
 	#get each json item
 	for item in data:
-	
-		valuestarttime = item['start_timestamp']
-		valueprice = item['marketprice']
-		
-		valuestarttime = valuestarttime / 1000 #remove milliseconds
 				
 		json_body = [{
 				"measurement": "Energy marketprice",
-				"time": datetime.datetime.utcfromtimestamp(valuestarttime).isoformat() + 'Z',
+				"time": item.start_datetime.astimezone(tz.UTC).isoformat(),
 				"fields": {
-					"value": float(valueprice)
+					"value": item.marketprice
 				}
 			}]
-			
+
 		result = client.write_points(json_body,protocol=u'json',time_precision='s')
-		
-def searchBestStartingPoint(starttime, periode, duration):
-	"""
-    Search the best starting point.
-
-    Parameters
-    ----------
-    starttime : int
-        Start time [hour]
-    periode : int
-        Time range [hour]
-	duration : int
-		Duration of usage[hour]
-
-    Returns
-    -------
-    int
-        Returns the best starting point
-
-    """
-
-	lowestprice = 99999.0
-	lowestpricetime = None
-	startatindex = None
-	durationround = math.ceil(duration)
-	datalenght = len(data) - (durationround - 1)
-
-	#get each json item
-	for i in range(0,datalenght):
-	
-		item = data[i]		
-		#get values from response
-		valuestarttime = item['start_timestamp']
-		valueprice = item['marketprice']
-		
-		valuestarttime = datetime.datetime.utcfromtimestamp(valuestarttime / 1000).replace(tzinfo=timezone.utc)
-		valuestarttime = valuestarttime.astimezone(tz.tzlocal())
-
-		if valuestarttime.hour >= starttime:
-			
-			if startatindex == None:
-				startatindex = i
-				
-			rangesum = 0
-			
-			for x in range(0, durationround):
-				xtime = datetime.datetime.utcfromtimestamp(data[i+x]['start_timestamp'] / 1000)
-				rangesum += data[i+x]['marketprice']
-			
-			averageprice = rangesum / durationround
-			
-			if averageprice < lowestprice:
-				lowestprice = averageprice
-				lowestpricetime = valuestarttime
-		
-		#Loop finished
-		if startatindex != None:
-			if i >= (startatindex + (periode-1)):
-				break
-
-	print('Best starting point at {:%d.%m.%Y %H:%M} ({:6.4f} EURO)'.format(lowestpricetime, lowestprice/1000))
-
-	return lowestpricetime
 
 def parseConfig():
 	"""
@@ -201,6 +97,7 @@ def parseConfig():
     """	
 	global config
 	global data
+	global client
 
 	#delete output files
 	for section in config.sections():
@@ -220,18 +117,24 @@ def parseConfig():
 		if 'Task' in section:
 			if config.getboolean(section, 'enable'):
 
+				starttime_slot = datetime.datetime.now()
+				starttime_slot = starttime_slot.replace(hour=config.getint(section, 'Starttime'))	
+				endtime_slot = starttime_slot + timedelta(hours=config.getint(section, 'Periode'))
+
 				#get best start time 
-				starttime = searchBestStartingPoint(config.getint(section, 'Starttime'),config.getint(section, 'Periode'),config.getfloat(section, 'Duration'))
-				endtime = starttime + timedelta(minutes=60*config.getfloat(section, 'Duration'))
+				best_slot = client.best_slot(config.getfloat(section, 'Duration'),starttime_slot, endtime_slot)
+				print(f'Best slot {best_slot.start_datetime:%Y-%m-%d %H:%M:%S} - {best_slot.end_datetime:%Y-%m-%d %H:%M:%S} - {(best_slot.marketprice / 1000):.4f} EUR/kWh')
+				
+				endtime = best_slot.start_datetime + timedelta(minutes=60*config.getfloat(section, 'Duration'))
 
 				#write start and end time to output
 				templatefile = open(config.get(section, 'Template'))
 				src = Template(templatefile.read())
-				d={ 'Starttime':starttime.strftime(config.get(section, 'Starttimepattern')), 'Endtime':endtime.strftime(config.get(section, 'Endtimepattern')) }
+				d={ 'Starttime':best_slot.start_datetime.strftime(config.get(section, 'Starttimepattern')), 'Endtime':endtime.strftime(config.get(section, 'Endtimepattern')) }
 				outputfile = open(config.get(section, 'Output'),'w')
 				outputfile.write(src.substitute(d))
-				outputfile.close()				
-
+				outputfile.close()	
+				
 		
 def main(argv):
 	"""
@@ -240,6 +143,7 @@ def main(argv):
     """	
 	global config
 	global data
+	global client
 	
 	config = configparser.ConfigParser()
 	config.read('/etc/awattar_scheduler/awattar_scheduler.conf')
@@ -257,7 +161,7 @@ def main(argv):
 
 	for opt, arg in opts:
 		if opt == '-h':
-			print('awattar_cron.py --starttime=<hour> --periode=<hour> --duration=<hour>')
+			print('awattar_scheduler.py --starttime=<hour> --periode=<hour> --duration=<hour>')
 			sys.exit()
 		elif opt in ("--starttime"):
 			starttime = arg
@@ -272,17 +176,34 @@ def main(argv):
 		periode = checkNumericInput('Period', periode)
 		duration = checkNumericInput('Duration', duration)
 
-	out = getDataFromServer()
+
+	client = AwattarClient('AT')
+
+	#set start timestamp
+	starttime_data = datetime.datetime.now(tz=timezone.utc)
+	starttime_data = starttime_data.replace(hour=0, minute=0, second=0)		
+	#set end timestamp
+	endtime = starttime_data + datetime.timedelta(days=2)
+
+	data = client.request(starttime_data, endtime)
 
 	#return if response is empty
-	if out == 0:
+	if data == 0 or len(data) == 0:
 		print('Can''t download data from server') 
 		return
-	
-	data = out['data']
+
+	#for item in data:
+	#		print(f'{item.start_datetime:%Y-%m-%d %H:%M:%S} - {item.end_datetime:%Y-%m-%d %H:%M:%S} - {(item.marketprice / 1000):.4f} EUR/kWh')
 
 	if len(opts) == 3:
-		searchBestStartingPoint(starttime, periode, duration)
+		starttime_slot = datetime.datetime.now()
+		starttime_slot = starttime_slot.replace(hour=starttime)	
+		endtime_slot = starttime_slot + timedelta(hours=periode)
+
+		#get best start time 
+		best_slot = client.best_slot(duration,starttime_slot, endtime_slot)
+		print(f'Best slot {best_slot.start_datetime:%Y-%m-%d %H:%M:%S} - {best_slot.end_datetime:%Y-%m-%d %H:%M:%S} - {(best_slot.marketprice / 1000):.4f} EUR/kWh')
+		
 	else:
 		parseConfig()
 
